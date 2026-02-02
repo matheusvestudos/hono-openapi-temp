@@ -89,7 +89,9 @@ export async function generateSpecs<
   for (const path in paths) {
     for (const method in paths[path]) {
       const isHidden = getHiddenValue({
-        valueOrFunc: (paths[path]![method as keyof OpenAPIV3_1.PathItemObject] as any)?.hide,
+        valueOrFunc: (
+          paths[path]![method as keyof OpenAPIV3_1.PathItemObject] as any
+        )?.hide,
         method,
         path,
         c,
@@ -134,9 +136,9 @@ async function generatePaths<
   const paths: OpenAPIV3_1.PathsObject = {};
 
   for (const route of hono.routes) {
-    const middlewareHandler = (findTargetHandler(route.handler) as any)[uniqueSymbol] as
-      | HandlerUniqueProperty
-      | undefined;
+    const middlewareHandler = (findTargetHandler(route.handler) as any)[
+      uniqueSymbol
+    ] as HandlerUniqueProperty | undefined;
 
     // Finding routes with uniqueSymbol
     if (!middlewareHandler) {

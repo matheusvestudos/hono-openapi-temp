@@ -1,7 +1,14 @@
 #!/usr/bin/env bun
 // build.ts - Build completo com auto-detect de dependências e metadados
 
-import { rm, mkdir, rename, copyFile, access, readFile } from "node:fs/promises";
+import {
+  access,
+  copyFile,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+} from "node:fs/promises";
 import path from "node:path";
 
 // ==========================================
@@ -19,7 +26,7 @@ const CONFIG = {
   // Se true, copia devDependencies do package.json raiz automaticamente
   includeDevDependencies: false,
 
-  // Se true, copia dependencies do package.json raiz automaticamente  
+  // Se true, copia dependencies do package.json raiz automaticamente
   includeDependencies: true,
 
   // Lista de dependências que devem ser incluídas no bundle (e removidas do package.json final)
@@ -31,7 +38,7 @@ const CONFIG = {
   target: "node" as const,
 
   // Arquivos adicionais para copiar pro dist
-  extraFiles: ["LICENSE", "README.md"]
+  extraFiles: ["LICENSE", "README.md"],
 };
 
 // ==========================================
@@ -137,22 +144,29 @@ async function getEntrypoints(): Promise<BuildTarget[]> {
   }
 
   console.log(`📦 Encontrados ${targets.length} entrypoint(s):`);
-  targets.forEach(t => console.log(`   ${t.entryPath} → ${t.exportKey}`));
+  targets.forEach((t) => console.log(`   ${t.entryPath} → ${t.exportKey}`));
 
   return targets;
 }
 
-async function buildJS(targets: BuildTarget[], rootPkg: RootPackageJson | null) {
+async function buildJS(
+  targets: BuildTarget[],
+  rootPkg: RootPackageJson | null,
+) {
   console.log("\n🔨 Compilando JavaScript...");
 
   // Identifica quais dependências devem ser externas
   const deps = rootPkg?.dependencies ? Object.keys(rootPkg.dependencies) : [];
-  const peerDeps = rootPkg?.peerDependencies ? Object.keys(rootPkg.peerDependencies) : [];
-  
+  const peerDeps = rootPkg?.peerDependencies
+    ? Object.keys(rootPkg.peerDependencies)
+    : [];
+
   // Combine dependencies and peerDependencies for externalization
   const allDeps = [...deps, ...peerDeps];
-  
-  const external = allDeps.filter(dep => !CONFIG.bundledDependencies.includes(dep));
+
+  const external = allDeps.filter(
+    (dep) => !CONFIG.bundledDependencies.includes(dep),
+  );
 
   if (CONFIG.bundledDependencies.length > 0) {
     console.log(`   📦 Bundling: ${CONFIG.bundledDependencies.join(", ")}`);
@@ -196,7 +210,12 @@ async function buildDeclarations(targets: BuildTarget[]) {
   const glob = new Bun.Glob("**/*.ts");
 
   for await (const file of glob.scan({ cwd: CONFIG.srcDir })) {
-    if (file.includes(".test.") || file.includes(".spec.") || file.includes("__tests__")) continue;
+    if (
+      file.includes(".test.") ||
+      file.includes(".spec.") ||
+      file.includes("__tests__")
+    )
+      continue;
     allSourceFiles.push(path.join(CONFIG.srcDir, file));
   }
 
@@ -206,21 +225,27 @@ async function buildDeclarations(targets: BuildTarget[]) {
 
   const proc = Bun.spawn({
     cmd: [
-      "bun", "tsc",
+      "bun",
+      "tsc",
       "--declaration",
       "--emitDeclarationOnly",
-      "--outDir", CONFIG.distDir,
-      "--rootDir", CONFIG.srcDir,
-      "--module", "ESNext",
-      "--moduleResolution", "bundler",
-      "--target", "ESNext",
+      "--outDir",
+      CONFIG.distDir,
+      "--rootDir",
+      CONFIG.srcDir,
+      "--module",
+      "ESNext",
+      "--moduleResolution",
+      "bundler",
+      "--target",
+      "ESNext",
       "--strict",
       "--esModuleInterop",
       "--skipLibCheck",
-      ...allSourceFiles
+      ...allSourceFiles,
     ],
     stdout: "inherit",
-    stderr: "inherit"
+    stderr: "inherit",
   });
 
   const exitCode = await proc.exited;
@@ -244,7 +269,11 @@ async function buildDeclarations(targets: BuildTarget[]) {
   console.log("✅ Declarações geradas");
 }
 
-async function generatePackageJson(targets: BuildTarget[], hasReadme: boolean, rootPkg: RootPackageJson | null) {
+async function generatePackageJson(
+  targets: BuildTarget[],
+  hasReadme: boolean,
+  rootPkg: RootPackageJson | null,
+) {
   console.log("\n📋 Gerando package.json do dist...");
 
   const exports: Record<string, any> = {};
@@ -254,11 +283,11 @@ async function generatePackageJson(targets: BuildTarget[], hasReadme: boolean, r
     exports[target.exportKey] = {
       types: `./${pathPrefix}index.d.ts`,
       import: `./${pathPrefix}index.js`,
-      default: `./${pathPrefix}index.js`
+      default: `./${pathPrefix}index.js`,
     };
   }
 
-  const hasRootExport = targets.some(t => t.exportKey === ".");
+  const hasRootExport = targets.some((t) => t.exportKey === ".");
 
   // Coleta dependências do package.json raiz se configurado
   const deps: Record<string, string> = {};
@@ -304,18 +333,22 @@ async function generatePackageJson(targets: BuildTarget[], hasReadme: boolean, r
     ...(Object.keys(devDeps).length > 0 && { devDependencies: devDeps }),
 
     // Peer dependencies se existirem no original
-    ...(rootPkg?.peerDependencies && { peerDependencies: rootPkg.peerDependencies }),
-    ...(rootPkg?.peerDependenciesMeta && { peerDependenciesMeta: rootPkg.peerDependenciesMeta })
+    ...(rootPkg?.peerDependencies && {
+      peerDependencies: rootPkg.peerDependencies,
+    }),
+    ...(rootPkg?.peerDependenciesMeta && {
+      peerDependenciesMeta: rootPkg.peerDependenciesMeta,
+    }),
   };
 
   // Remove campos undefined
-  Object.keys(pkg).forEach(key => {
+  Object.keys(pkg).forEach((key) => {
     if (pkg[key] === undefined) delete pkg[key];
   });
 
   await Bun.write(
     path.join(CONFIG.distDir, "package.json"),
-    JSON.stringify(pkg, null, 2)
+    JSON.stringify(pkg, null, 2),
   );
 
   console.log("   ✅ package.json gerado");
@@ -323,14 +356,19 @@ async function generatePackageJson(targets: BuildTarget[], hasReadme: boolean, r
     console.log(`   📦 Dependencies: ${Object.keys(deps).length} pacote(s)`);
   }
   if (Object.keys(devDeps).length > 0) {
-    console.log(`   🔧 DevDependencies: ${Object.keys(devDeps).length} pacote(s)`);
+    console.log(
+      `   🔧 DevDependencies: ${Object.keys(devDeps).length} pacote(s)`,
+    );
   }
   if (hasReadme) {
     console.log(`   📄 Readme: referenciado`);
   }
 }
 
-async function generateJsrJson(targets: BuildTarget[], rootPkg: RootPackageJson | null) {
+async function generateJsrJson(
+  targets: BuildTarget[],
+  rootPkg: RootPackageJson | null,
+) {
   console.log("\n📋 Gerando jsr.json do dist...");
 
   const exports: Record<string, string> = {};
@@ -348,7 +386,7 @@ async function generateJsrJson(targets: BuildTarget[], rootPkg: RootPackageJson 
 
   await Bun.write(
     path.join(CONFIG.distDir, "jsr.json"),
-    JSON.stringify(jsr, null, 2)
+    JSON.stringify(jsr, null, 2),
   );
 
   console.log("   ✅ jsr.json gerado");
@@ -362,7 +400,11 @@ async function main() {
       console.log(`   📦 Package.json raiz detectado`);
       if (rootPkg.version) CONFIG.version = rootPkg.version;
       if (rootPkg.description) CONFIG.description = rootPkg.description;
-      if (rootPkg.author) CONFIG.author = typeof rootPkg.author === 'string' ? rootPkg.author : rootPkg.author.name;
+      if (rootPkg.author)
+        CONFIG.author =
+          typeof rootPkg.author === "string"
+            ? rootPkg.author
+            : rootPkg.author.name;
     }
 
     console.log(`🚀 Build iniciado para: ${CONFIG.name}@${CONFIG.version}`);
@@ -385,12 +427,11 @@ async function main() {
     for await (const file of listGlob.scan({ cwd: CONFIG.distDir })) {
       files.push(file);
     }
-    files.sort().forEach(f => console.log(`   ${f}`));
+    files.sort().forEach((f) => console.log(`   ${f}`));
 
     console.log(`\n💡 Para publicar:`);
     console.log(`   cd ${CONFIG.distDir}`);
     console.log(`   npm publish --access public`);
-
   } catch (error) {
     console.error("\n❌ Erro no build:", error);
     process.exit(1);

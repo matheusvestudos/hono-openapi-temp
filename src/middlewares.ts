@@ -119,6 +119,34 @@ export function validator<
  * @returns Middleware handler
  */
 export function describeRoute(spec: DescribeRouteOptions): MiddlewareHandler {
+  if (spec.responses) {
+    for (const key in spec.responses) {
+      const response: any = spec.responses[key];
+      if ("$ref" in response) continue;
+
+      if (response.schema) {
+        const mediaType = response.type || "application/json";
+        let schema = response.schema;
+
+        if (
+          typeof schema === "object" &&
+          schema !== null &&
+          "~standard" in schema
+        ) {
+          schema = resolver(schema as StandardSchemaV1);
+        }
+
+        response.content ??= {};
+        response.content[mediaType] ??= {};
+        response.content[mediaType].schema = schema as any;
+
+        delete response.schema;
+        delete response.type;
+        delete response.status;
+      }
+    }
+  }
+
   const middleware: MiddlewareHandler = async (_c, next) => {
     await next();
   };
@@ -183,21 +211,20 @@ export function describeResponse<
   const _responses = Object.entries(responses).reduce(
     (acc, [statusCode, response]) => {
       if (response.content) {
-        const content = Object.entries(response.content).reduce<Record<string, any>>(
-          (contentAcc, [mediaType, media]: [string, any]) => {
-            if (media.vSchema) {
-              const { vSchema, ...rest } = media;
-              contentAcc[mediaType] = {
-                ...rest,
-                schema: resolver(vSchema, options),
-              };
-            } else {
-              contentAcc[mediaType] = media;
-            }
-            return contentAcc;
-          },
-          {},
-        );
+        const content = Object.entries(response.content).reduce<
+          Record<string, any>
+        >((contentAcc, [mediaType, media]: [string, any]) => {
+          if (media.vSchema) {
+            const { vSchema, ...rest } = media;
+            contentAcc[mediaType] = {
+              ...rest,
+              schema: resolver(vSchema, options),
+            };
+          } else {
+            contentAcc[mediaType] = media;
+          }
+          return contentAcc;
+        }, {});
         acc[statusCode] = { ...response, content };
       } else {
         acc[statusCode] = response;
