@@ -1,4 +1,5 @@
 import type { ToOpenAPISchemaContext } from "@standard-community/standard-openapi";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { Context } from "hono";
 import type { RouterRoute, ValidationTargets } from "hono/types";
 import type { OpenAPIV3_1 } from "openapi-types";
@@ -100,6 +101,13 @@ export type DescribeRouteOptions = Omit<
                 | ResolverReturnType;
             };
           };
+          schema?:
+            | StandardSchemaV1
+            | ResolverReturnType
+            | OpenAPIV3_1.ReferenceObject
+            | OpenAPIV3_1.SchemaObject;
+          type?: string;
+          status?: number;
         })
       | OpenAPIV3_1.ReferenceObject;
   };
