@@ -29,8 +29,8 @@ describe("Flat Syntax", () => {
     expect(specs).toMatchSnapshot();
 
     // Check if structure is correct manually as well
-    const response200 = specs.paths?.['/']?.get?.responses?.['200'] as any;
-    expect(response200.content['application/json'].schema).toBeDefined();
+    const response200 = specs.paths?.["/"]?.get?.responses?.["200"] as any;
+    expect(response200.content["application/json"].schema).toBeDefined();
     expect(response200.schema).toBeUndefined();
   });
 
@@ -57,8 +57,10 @@ describe("Flat Syntax", () => {
     const specs = await generateSpecs(app);
     expect(specs).toMatchSnapshot();
 
-    const response400 = specs.paths?.['/']?.get?.responses?.['400'] as any;
-    expect(response400.content['application/problem+json'].schema).toBeDefined();
+    const response400 = specs.paths?.["/"]?.get?.responses?.["400"] as any;
+    expect(
+      response400.content["application/problem+json"].schema,
+    ).toBeDefined();
   });
 
   it("with status property (cleaned up)", async () => {
@@ -82,7 +84,7 @@ describe("Flat Syntax", () => {
     );
 
     const specs = await generateSpecs(app);
-    const response200 = specs.paths?.['/']?.get?.responses?.['200'] as any;
+    const response200 = specs.paths?.["/"]?.get?.responses?.["200"] as any;
     expect(response200.status).toBeUndefined();
   });
 });

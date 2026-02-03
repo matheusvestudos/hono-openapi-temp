@@ -118,7 +118,36 @@ export function validator<
  * @param spec Options for describing a route
  * @returns Middleware handler
  */
-export function describeRoute(spec: DescribeRouteOptions): MiddlewareHandler {
+type InferOutput<T> = T extends StandardSchemaV1
+  ? StandardSchemaV1.InferOutput<T>
+  : unknown;
+
+type ExtractResponses<T> = T extends { responses: infer R } ? R : never;
+
+type ExtractSchema<T> = T extends { schema: infer S }
+  ? InferOutput<S>
+  : T extends { content: { "application/json": { schema: infer S } } }
+    ? InferOutput<S>
+    : unknown;
+
+type MapResponsesToOutput<R> = {
+  [K in keyof R & StatusCode]: ExtractSchema<R[K]>;
+};
+
+export function describeRoute<
+  S extends DescribeRouteOptions,
+  E extends Env = Env,
+  P extends string = string,
+  I extends Input = {},
+>(
+  spec: S,
+): MiddlewareHandler<
+  E,
+  P,
+  I & {
+    out: MapResponsesToOutput<ExtractResponses<S>>;
+  }
+> {
   if (spec.responses) {
     for (const key in spec.responses) {
       const response: any = spec.responses[key];
@@ -143,6 +172,20 @@ export function describeRoute(spec: DescribeRouteOptions): MiddlewareHandler {
         delete response.schema;
         delete response.type;
         delete response.status;
+      }
+
+      if (response.content) {
+        for (const mediaType in response.content) {
+          const media = response.content[mediaType];
+          if (
+            media.schema &&
+            typeof media.schema === "object" &&
+            media.schema !== null &&
+            "~standard" in media.schema
+          ) {
+            media.schema = resolver(media.schema as StandardSchemaV1);
+          }
+        }
       }
     }
   }
